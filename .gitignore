@@ -1,0 +1,5 @@
+# make sure that no data is sent to github
+cleaning/electricity-consumption/data/*
+*.ipynb_checkpoints
+*.csv
+*.xls
