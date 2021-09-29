@@ -2,6 +2,7 @@
 cleaning/electricity-consumption/data/*
 cleaning/electricity-prices/data/*
 cleaning/electricity-production/data/*
+cleaning/data/*
 *.ipynb_checkpoints
 *.csv
 *.xls
