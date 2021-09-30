@@ -8,6 +8,7 @@ cleaning/data/*
 *.ipynb_checkpoints
 *.csv
 *.xls
+.txt
 
 # macos storage files
 *.DS_Store*
