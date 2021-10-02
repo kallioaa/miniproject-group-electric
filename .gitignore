@@ -4,6 +4,7 @@ cleaning/electricity-prices/data/*
 cleaning/electricity-production/data/*
 cleaning/weather/pre_processed_data
 cleaning/weather/raw_data
+cleaning/weather/data
 cleaning/data/*
 *.ipynb_checkpoints
 *.csv
