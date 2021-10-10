@@ -6,6 +6,7 @@ cleaning/weather/pre_processed_data
 cleaning/weather/raw_data
 cleaning/weather/data
 cleaning/data/*
+analysis/data
 *.ipynb_checkpoints
 *.csv
 *.xls
