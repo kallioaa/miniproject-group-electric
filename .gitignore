@@ -7,6 +7,7 @@ cleaning/weather/raw_data
 cleaning/weather/data
 cleaning/data/*
 analysis/data
+automation/models/*
 *.ipynb_checkpoints
 *.csv
 *.xls
