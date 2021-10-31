@@ -160,37 +160,6 @@ def create_sifted_variables(df):
 def predict_prices(df):
     ''' Predict electricity price for each hour '''
     df = df.drop(columns=['PRICE (EUR/MWh)', 'PRODUCTION (MWh)', 'CONSUMP (MWh)'], axis = 1)
-    # add missing weather variables (no weather API at least for now)
-    df['MAARIANHAMINA CLOUDS (1/8)'] = 0
-    df['MAARIANHAMINA TEMP (C)'] = 0
-    df['MAARIANHAMINA WIND (m/s)'] = 0
-    df['JYVÄSKYLÄ CLOUDS (1/8)'] = 0
-    df['JYVÄSKYLÄ TEMP (C)'] = 0
-    df['JYVÄSKYLÄ WIND (m/s)'] = 0
-    df['KAJAANI CLOUDS (1/8)'] = 0
-    df['KAJAANI TEMP (C)'] = 0
-    df['KAJAANI WIND (m/s)'] = 0
-    df['KUUSAMO CLOUDS (1/8)'] = 0
-    df['KUUSAMO TEMP (C)'] = 0
-    df['KUUSAMO WIND (m/s)'] = 0
-    df['JOENSUU CLOUDS (1/8)'] = 0
-    df['JOENSUU TEMP (C)'] = 0
-    df['JOENSUU WIND (m/s)'] = 0
-    df['OULU CLOUDS (1/8)'] = 0
-    df['OULU TEMP (C)'] = 0
-    df['OULU WIND (m/s)'] = 0
-    df['PORI CLOUDS (1/8)'] = 0
-    df['PORI TEMP (C)'] = 0
-    df['PORI WIND (m/s)'] = 0
-    df['KUOPIO CLOUDS (1/8)'] = 0
-    df['KUOPIO TEMP (C)'] = 0
-    df['KUOPIO WIND (m/s)'] = 0
-    df['SODANKYLÄ CLOUDS (1/8)'] = 0
-    df['SODANKYLÄ TEMP (C)'] = 0
-    df['SODANKYLÄ WIND (m/s)'] = 0
-    df['TURKU CLOUDS (1/8)'] = 0
-    df['TURKU TEMP (C)'] = 0
-    df['TURKU WIND (m/s)'] = 0
     # load the random forest regression model
     model = pickle.load(open('./models/regression_model.sav', 'rb'))
     # predict values

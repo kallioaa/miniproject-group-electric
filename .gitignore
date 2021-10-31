@@ -13,6 +13,7 @@ automation/models/*
 *.xls
 *.png
 .txt
+*.sav
 
 # macos storage files
 *.DS_Store*
