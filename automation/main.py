@@ -211,13 +211,13 @@ def write_predictions_to_csv(predictions):
 if __name__ == '__main__':
     set_working_directory()
     download_data_file(
-        "https://www.nordpoolgroup.com/4ab274/globalassets/marketdata-excel-files/elspot-prices_2021_hourly_eur",
+        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/elspot-prices_2021_hourly_eur",
         "./input_files/2021_prices_hourly.xls")
     download_data_file(
-        "https://www.nordpoolgroup.com/4aaffb/globalassets/marketdata-excel-files/consumption-per-country_2021_hourly",
+        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/consumption-per-country_2021_hourly",
         "./input_files/2021_consumption_hourly.xls")
     download_data_file(
-        "https://www.nordpoolgroup.com/4ab037/globalassets/marketdata-excel-files/production-per-country_2021_hourly",
+        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/production-per-country_2021_hourly",
         "./input_files/2021_production_hourly.xls")
     convert_xls_into_csv("./input_files/2021_prices_hourly.xls", "./input_files/2021_prices_hourly.csv")
     convert_xls_into_csv("./input_files/2021_consumption_hourly.xls", "./input_files/2021_consumption_hourly.csv")
