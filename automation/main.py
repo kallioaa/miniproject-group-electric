@@ -2,11 +2,15 @@
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from functools import reduce
+from itertools import chain
+import json
+import numpy as np
 import os
 import pandas as pd
 import pickle
+from pandas.io.stata import invalid_name_doc
 import requests
-import urllib.request
+
 
 
 def set_working_directory():
@@ -18,32 +22,9 @@ def set_working_directory():
 
 
 def download_data_file(url_to_file, file_name):
-    ''' Download data file (latest version) from Nord Pool '''
-    latest_url = None
-    version = 1
-    # try to find the latest file from the server
-    while True:
-        complete_file_url = url_to_file
-        if version == 1:
-            complete_file_url += ".xls"
-        else:
-            complete_file_url += str(version) + ".xls"
-        version += 1
-
-        try:
-            status_code = urllib.request.urlopen(complete_file_url).getcode()
-            if status_code == 200:
-                latest_url = complete_file_url
-            else:
-                break
-        except:
-            break
-    # make sure that file was found
-    if latest_url == None:
-        raise Exception("Could not find file from server: " + url_to_file)
-    # download the file from server and add it to input_files folder
-    print("Downloading file:" + latest_url)
-    r = requests.get(latest_url, allow_redirects=True)
+    ''' Download data file '''
+    print("Downloading file:" + url_to_file)
+    r = requests.get(url_to_file, allow_redirects=True)
     open(file_name, 'wb').write(r.content)
 
 
@@ -55,8 +36,30 @@ def convert_xls_into_csv(file_name, new_file_name):
     df = pd_list[0]
     df.to_csv(new_file_name, sep=";", index=False)
 
+def convert_weather_json_into_csv(filename_json, filename_csv):
+    with open(filename_json) as json_file:
+        weather_data_dict = json.load(json_file)
+    # fetching the needed information from hourly weather values
+    hourly_weathers = weather_data_dict["forecastValues"]
+    years = [int(one_datapoint["localtime"][0:4]) for one_datapoint in hourly_weathers]
+    months = [int(one_datapoint["localtime"][4:6]) for one_datapoint in hourly_weathers]
+    dates = [int(one_datapoint["localtime"][6:8]) for one_datapoint in hourly_weathers]
+    hours = [int(one_datapoint["localtime"][9:11]) for one_datapoint in hourly_weathers]
+    temperatures = [one_datapoint["Temperature"] for one_datapoint in hourly_weathers]
+    wind_speeds = [one_data_point["WindSpeedMS"] for one_data_point in hourly_weathers]
 
-def merge_the_data(price_file, production_file, consumption_file):
+    # measurement station city
+    measurement_city = str(hourly_weathers[0]["name"]).upper()
+
+
+    # df for forecast on one weather station
+    weather_station_np = np.array([years, months, dates, hours, temperatures, wind_speeds]).transpose()
+    weather_station_df = pd.DataFrame(weather_station_np, columns=["Year", "Month", "Day", "Hour",'{} TEMP (C)'.format(measurement_city), '{} WIND (m/s)'.format(measurement_city)])
+    weather_station_df = weather_station_df.astype("int32", errors="ignore")
+    weather_station_df.to_csv(filename_csv, sep=";", index=False)
+
+
+def merge_electricity_data(price_file, production_file, consumption_file):
     ''' Function to merge csv-files together. Returns pandas Dataframe '''
     # clean price data before merging process
     df_price = pd.read_csv(price_file, sep=";", skiprows=2)
@@ -96,6 +99,22 @@ def merge_the_data(price_file, production_file, consumption_file):
     df = reduce(lambda left, right: pd.merge(
         left, right, on=['Date', 'Hour'], how='outer'), data_frames)
     return df
+
+def merge_weather_data(weather_data_csv_uris, filename):
+    weather_stations_df = []
+
+    # read station specific weather csvs and add them to a list
+    for csv_weather_uri in weather_data_csv_uris:
+        weather_df = pd.read_csv(csv_weather_uri, sep=";")
+        weather_stations_df.append(weather_df)
+
+    # combine everything in a single df 
+    combined_df = reduce(lambda left, right: pd.merge(
+        left, right, on=["Year", "Month", "Day", "Hour"], how='outer'), weather_stations_df)
+
+    combined_df.to_csv("weather_data.csv")
+    
+    return combined_df
 
 
 def more_data_cleaning(df):
@@ -157,42 +176,11 @@ def create_sifted_variables(df):
     return df
 
 
-def predict_prices(df):
+def predict_prices(df, model_file):
     ''' Predict electricity price for each hour '''
     df = df.drop(columns=['PRICE (EUR/MWh)', 'PRODUCTION (MWh)', 'CONSUMP (MWh)'], axis = 1)
-    # add missing weather variables (no weather API at least for now)
-    df['MAARIANHAMINA CLOUDS (1/8)'] = 0
-    df['MAARIANHAMINA TEMP (C)'] = 0
-    df['MAARIANHAMINA WIND (m/s)'] = 0
-    df['JYVÄSKYLÄ CLOUDS (1/8)'] = 0
-    df['JYVÄSKYLÄ TEMP (C)'] = 0
-    df['JYVÄSKYLÄ WIND (m/s)'] = 0
-    df['KAJAANI CLOUDS (1/8)'] = 0
-    df['KAJAANI TEMP (C)'] = 0
-    df['KAJAANI WIND (m/s)'] = 0
-    df['KUUSAMO CLOUDS (1/8)'] = 0
-    df['KUUSAMO TEMP (C)'] = 0
-    df['KUUSAMO WIND (m/s)'] = 0
-    df['JOENSUU CLOUDS (1/8)'] = 0
-    df['JOENSUU TEMP (C)'] = 0
-    df['JOENSUU WIND (m/s)'] = 0
-    df['OULU CLOUDS (1/8)'] = 0
-    df['OULU TEMP (C)'] = 0
-    df['OULU WIND (m/s)'] = 0
-    df['PORI CLOUDS (1/8)'] = 0
-    df['PORI TEMP (C)'] = 0
-    df['PORI WIND (m/s)'] = 0
-    df['KUOPIO CLOUDS (1/8)'] = 0
-    df['KUOPIO TEMP (C)'] = 0
-    df['KUOPIO WIND (m/s)'] = 0
-    df['SODANKYLÄ CLOUDS (1/8)'] = 0
-    df['SODANKYLÄ TEMP (C)'] = 0
-    df['SODANKYLÄ WIND (m/s)'] = 0
-    df['TURKU CLOUDS (1/8)'] = 0
-    df['TURKU TEMP (C)'] = 0
-    df['TURKU WIND (m/s)'] = 0
     # load the random forest regression model
-    model = pickle.load(open('./models/regression_model.sav', 'rb'))
+    model = pickle.load(open(model_file, 'rb'))
     # predict values
     predictions = model.predict(df)
     df['PREDICTION (EUR/MWh)'] = predictions
@@ -207,26 +195,69 @@ def write_predictions_to_csv(predictions):
     df_result.to_csv("./output_files/results.csv", sep=";", index=False)
     print("PREDICTIONS DONE WITHOUT ERRORS!")
 
+def weather_urls_from_config(file_path):
+    weather_urls_dict = {}
+    with open(file_path) as file:
+        for line in file:
+            line_splitted = line.split(",")
+            weather_urls_dict[line_splitted[0].strip()] = line_splitted[1].strip()
+    return weather_urls_dict
+
 # run the following script when file is executed as main program
 if __name__ == '__main__':
     set_working_directory()
+
+    #electricity data
     download_data_file(
-        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/elspot-prices_2021_hourly_eur",
+        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/elspot-prices_2021_hourly_eur.xls",
         "./input_files/2021_prices_hourly.xls")
     download_data_file(
-        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/consumption-per-country_2021_hourly",
+        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/consumption-per-country_2021_hourly.xls",
         "./input_files/2021_consumption_hourly.xls")
     download_data_file(
-        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/production-per-country_2021_hourly",
+        "https://www.nordpoolgroup.com/globalassets/marketdata-excel-files/production-per-country_2021_hourly.xls",
         "./input_files/2021_production_hourly.xls")
+
     convert_xls_into_csv("./input_files/2021_prices_hourly.xls", "./input_files/2021_prices_hourly.csv")
     convert_xls_into_csv("./input_files/2021_consumption_hourly.xls", "./input_files/2021_consumption_hourly.csv")
     convert_xls_into_csv("./input_files/2021_production_hourly.xls", "./input_files/2021_production_hourly.csv")
-    df = merge_the_data(
+
+    electricity_df = merge_electricity_data(
         "./input_files/2021_prices_hourly.csv",
         "./input_files/2021_consumption_hourly.csv",
         "./input_files/2021_production_hourly.csv")
-    df = more_data_cleaning(df)
-    df = create_sifted_variables(df)
-    predictions = predict_prices(df)
+    electricity_df = more_data_cleaning(electricity_df)
+    electricity_df = create_sifted_variables(electricity_df)
+
+    electricity_df.to_csv("test.csv", sep=";")
+
+    # weather forecast data
+    weather_urls_dict = weather_urls_from_config("./config/weather_urls.txt")
+
+    weather_csv_file_uris = []
+    for key in weather_urls_dict:
+        filename_json = './input_files/{}_weather_data.json'.format(key)
+        filename_csv = './input_files/{}_weather_data.csv'.format(key)
+        download_data_file(weather_urls_dict[key], filename_json)
+        convert_weather_json_into_csv(filename_json, filename_csv)
+        weather_csv_file_uris.append(filename_csv)
+    
+    weather_df = merge_weather_data(weather_csv_file_uris, "all_stations_weather_data.csv")
+
+    # combine electricity and weather dataframes
+    combined_df = pd.merge(electricity_df, weather_df.drop(["Year"], axis=1), on=["Month", 'Day', 'Hour'])
+    combined_df = combined_df.dropna()
+    
+    # changing the order of the columns ß
+    columns = combined_df.columns
+    new_order = list(chain(columns[0:7],columns[22:],columns[7:22]))
+
+    combined_df = combined_df[new_order]
+    combined_df.to_csv("test.csv")
+
+
+
+
+    # generating predictions
+    predictions = predict_prices(combined_df, "./models/regression_model_wo_clouds.sav")
     write_predictions_to_csv(predictions)

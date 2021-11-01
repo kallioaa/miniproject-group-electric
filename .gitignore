@@ -8,6 +8,8 @@ cleaning/weather/data
 cleaning/data/*
 analysis/data
 automation/models/*
+automation/input_files/*
+automation/config/*
 *.ipynb_checkpoints
 *.csv
 *.xls
