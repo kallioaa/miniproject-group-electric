@@ -111,8 +111,6 @@ def merge_weather_data(weather_data_csv_uris, filename):
     # combine everything in a single df 
     combined_df = reduce(lambda left, right: pd.merge(
         left, right, on=["Year", "Month", "Day", "Hour"], how='outer'), weather_stations_df)
-
-    combined_df.to_csv("weather_data.csv")
     
     return combined_df
 
@@ -192,6 +190,11 @@ def write_predictions_to_csv(predictions):
     df_result = predictions[['Month', 'Day', 'Hour', 'PREDICTION (EUR/MWh)']]
     df_result['Year'] = datetime.now().year
     df_result = df_result.reindex(['Year', 'Month', 'Day', 'Hour', 'PREDICTION (EUR/MWh)'], axis=1)
+    # creating ISO8601 format time column
+    df_result = df_result.astype(str)
+    df_result["timestamp"] = df_result["Month"] + "/" + df_result["Day"] + "/" + df_result["Year"] + " " + df_result["Hour"]
+    df_result = df_result.drop(['Year', 'Month', 'Day', 'Hour'], axis=1)
+    df_result = df_result[["timestamp", 'PREDICTION (EUR/MWh)']]
     df_result.to_csv("./output_files/results.csv", sep=";", index=False)
     print("PREDICTIONS DONE WITHOUT ERRORS!")
 
@@ -229,8 +232,6 @@ if __name__ == '__main__':
     electricity_df = more_data_cleaning(electricity_df)
     electricity_df = create_sifted_variables(electricity_df)
 
-    electricity_df.to_csv("test.csv", sep=";")
-
     # weather forecast data
     weather_urls_dict = weather_urls_from_config("./config/weather_urls.txt")
 
@@ -253,9 +254,6 @@ if __name__ == '__main__':
     new_order = list(chain(columns[0:7],columns[22:],columns[7:22]))
 
     combined_df = combined_df[new_order]
-    combined_df.to_csv("test.csv")
-
-
 
 
     # generating predictions
